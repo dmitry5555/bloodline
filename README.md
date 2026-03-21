@@ -29,40 +29,74 @@ This is built for you.
 
 ---
 
+**v1 progress**
+
+![60%](https://img.shields.io/badge/v1-60%25-black?style=flat-square)
+![graph](https://img.shields.io/badge/graph-done-brightgreen?style=flat-square&logo=data:image/svg+xml;base64,)
+![ui](https://img.shields.io/badge/UI-pending-gray?style=flat-square)
+
 **Demo**
 <!-- coming soon -->
 
 **How it works**
 
-1. RateYourMusic Top 5000 → album list + mood descriptors
-2. Wikipedia API → full article text per album
-3. LLM (Ollama) → extract artists cited as musical influences
-4. Recursive expansion → fetch Wikipedia for each influence artist (depth=2)
-5. SQLite graph → `album→artist` (depth=1), `artist→artist` (depth=2)
-6. Next.js → UI + API routes
+Each source (Wikipedia article, Pitchfork review, interview) is stored separately in the DB — so extraction can be re-run per source when the model or prompt changes, without re-fetching.
+
+1. RateYourMusic Top 5000 → seed list of albums + mood descriptors
+2. step1 → fetch Wikipedia text for albums and influence artists, store raw in `sources`
+3. step2 → LLM extracts the "juice" from each source: influences, mood, context → stored as JSON
+4. step3 → builds influence graph from extracted data, discovers new artists → back to step1
+5. Two passes cover depth=2: album→artist→artist
+6. SQLite graph → `album→artist` (depth=1), `artist→artist` (depth=2)
+7. Next.js → UI + API routes
 
 **Stack**
 
+data &nbsp;
 ![Python](https://img.shields.io/badge/Python-3.11-black?style=flat-square&logo=python&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js&logoColor=white)
+![Pandas](https://img.shields.io/badge/Pandas-black?style=flat-square&logo=pandas&logoColor=white)
+![Wikipedia](https://img.shields.io/badge/Wikipedia-API-black?style=flat-square&logo=wikipedia&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-black?style=flat-square&logo=sqlite&logoColor=white)
-![Ollama](https://img.shields.io/badge/Ollama-llama3.2:3b-black?style=flat-square)
+![LanceDB](https://img.shields.io/badge/LanceDB-black?style=flat-square)
+
+ai &nbsp;
+![Ollama](https://img.shields.io/badge/Ollama-black?style=flat-square)
+![Qwen](https://img.shields.io/badge/Qwen-2.5:7b-black?style=flat-square)
+![Nomic](https://img.shields.io/badge/Nomic-embed--text-black?style=flat-square)
+![RAG](https://img.shields.io/badge/RAG-black?style=flat-square)
+
+web &nbsp;
+![TypeScript](https://img.shields.io/badge/TypeScript-black?style=flat-square&logo=typescript&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js&logoColor=white)
+![React](https://img.shields.io/badge/React-black?style=flat-square&logo=react&logoColor=white)
+![Tailwind](https://img.shields.io/badge/Tailwind-black?style=flat-square&logo=tailwindcss&logoColor=white)
+
+mobile &nbsp;
+![Expo](https://img.shields.io/badge/Expo-black?style=flat-square&logo=expo&logoColor=white)
+![React Native](https://img.shields.io/badge/React%20Native-black?style=flat-square&logo=react&logoColor=white)
 
 <details>
 <summary>Scripts</summary>
 
+Run two passes to cover depth=2:
+
 ```bash
 cd scripts
-python step1_collect.py        # fetch Wikipedia text for RYM albums → SQLite
-python step2_extract.py        # extract musical influences via Ollama → SQLite
-python step3_build_graph.py    # recursively expand influence graph → SQLite
+python step1_collect.py        # fetch Wikipedia → sources (albums + any new artists)
+python step2_extract.py        # LLM extraction → extracted_json in sources
+python step3_build_graph.py    # build edges, register new influence artists
+python step1_collect.py        # fetch Wikipedia for new artists (depth=2)
+python step2_extract.py        # LLM extraction for depth=2 artists
+python step3_build_graph.py    # complete the graph
 ```
 
-**step1_collect.py** — reads `source/rym_clean1.csv`, searches Wikipedia for each album, fetches the full article text, saves to `scripts/data/bloodline.db` (table: `albums`).
+**step1_collect.py** — reads `source/rym_clean1.csv`, fetches Wikipedia for each album. Also fetches Wikipedia for any artists registered by step3 that haven't been fetched yet. Saves raw text to `sources` table, sets `fetched=1`. Skips already fetched.
 
-**step2_extract.py** — reads unprocessed albums from DB, sends wiki text in paragraph-based chunks (up to 8000 chars) to Ollama (llama3.2:3b), extracts artists mentioned as direct musical influences. Saves as JSON in `influences_raw`, sets `processed=1`.
+**step2_extract.py** — reads all sources with `fetched=1, extracted=0`, sends wiki text in paragraph-based chunks (up to 8000 chars) to Ollama (qwen2.5:7b). Extracts artists cited as musical influences. Saves JSON to `extracted_json`, sets `extracted=1`, records model and prompt version.
 
-**step3_build_graph.py** — recursively expands the influence graph up to depth=2. For each influence artist found in step2: fetches their Wikipedia page, runs influence extraction, stores in `artists` table. Edges stored in `edges` table: depth=1 as `album→artist`, depth=2 as `artist→artist`.
+**step3_build_graph.py** — reads `extracted_json` from all processed sources, creates artist nodes in `artists` table, writes edges: `album→artist` (depth=1), `artist→artist` (depth=2). Does not fetch or extract — only builds the graph.
+
+**wiki.py** — shared Wikipedia fetch logic used by step1 and step3.
 
 **get_photo_wi.py** — utility to fetch artist photo from Wikipedia (Wikimedia Commons only).
 
@@ -87,10 +121,11 @@ pip install -r requirements.txt
 
 **v1 — Influence Graph**
 - [ ] RateYourMusic Top 5000 → album list + mood descriptors
-- [ ] Wikipedia API → fetch wiki text per album
-- [x] LLM (Ollama) → extract musical influences from wiki text
-- [x] Recursive expansion (depth=2)
-- [x] SQLite graph — albums + artists + edges
+- [x] Wikipedia API → fetch wiki text per album and per influence artist
+- [x] LLM (Ollama) → extract musical influences from each source independently
+- [x] Recursive expansion (depth=2) — step1→step2→step3 run twice
+- [x] SQLite graph — albums + artists + sources + edges
+- [x] Per-source storage — each source tracked separately (fetched/extracted flags, model, prompt version)
 - [ ] LanceDB → embeddings for semantic search (Nomic via Ollama)
 - [ ] Next.js API routes → search + graph traversal
 - [ ] Basic UI → search by album, see influence chain

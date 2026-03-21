@@ -1,81 +1,105 @@
 # scripts/step1_collect.py
-import requests
-import time
+from datetime import datetime, timezone
 import pandas as pd
 from db import get_connection, init_db
+from wiki import fetch_wiki_text
 
-HEADERS = {
-    "User-Agent": "Bloodline/1.0 (music influence research project)"
-}
 
-def fetch_wiki_text(artist, album):
-    search_url = "https://en.wikipedia.org/w/api.php"
-    
-    params = {
-        "action": "query",
-        "list": "search",
-        "srsearch": f"{artist} {album} album",
-        "format": "json"
-    }
-    response = requests.get(search_url, params=params, headers=HEADERS)
-    data = response.json()
-    
-    if not data["query"]["search"]:
-        print(f"Not found: {artist} - {album}")
-        return None, None
-    
-    page_title = data["query"]["search"][0]["title"]
-    
-    content_params = {
-        "action": "query",
-        "titles": page_title,
-        "prop": "extracts",
-        "explaintext": True,
-        "format": "json"
-    }
-    content = requests.get(search_url, params=content_params, headers=HEADERS)
-    pages = content.json()["query"]["pages"]
-    text = list(pages.values())[0].get("extract", "")
-    
-    return page_title, text
+def save_source(conn, entity_type, entity_id, wiki_page, wiki_text):
+    conn.execute("""
+        INSERT OR IGNORE INTO sources
+            (entity_type, entity_id, source_type, url, raw_text, fetched_at, fetched)
+        VALUES (?, ?, 'wikipedia', ?, ?, ?, 1)
+    """, (entity_type, entity_id, wiki_page, wiki_text, datetime.now(timezone.utc).isoformat()))
+    conn.commit()
 
-def save_album(artist, album, year, genres, descriptors, wiki_page, wiki_text):
+
+def collect_album(artist, title, year, genres, descriptors):
     conn = get_connection()
-    try:
+
+    # пропускаем если уже собрано
+    existing = conn.execute("""
+        SELECT s.id FROM sources s
+        JOIN albums a ON a.id = s.entity_id
+        WHERE a.artist = ? AND a.title = ?
+          AND s.entity_type = 'album' AND s.source_type = 'wikipedia'
+          AND s.fetched = 1
+    """, (artist, title)).fetchone()
+    conn.close()
+
+    if existing:
+        print(f"  Skip (already fetched): {artist} - {title}")
+        return
+
+    print(f"  Fetching: {artist} - {title}")
+    wiki_page, wiki_text = fetch_wiki_text(f"{artist} {title} album")
+    if not wiki_text:
+        print(f"  Not found: {artist} - {title}")
+        return
+
+    conn = get_connection()
+    conn.execute("""
+        INSERT OR IGNORE INTO albums (artist, title, year, genres, descriptors)
+        VALUES (?, ?, ?, ?, ?)
+    """, (artist, title, year, genres, descriptors))
+    conn.commit()
+
+    album = conn.execute(
+        "SELECT id FROM albums WHERE artist = ? AND title = ?", (artist, title)
+    ).fetchone()
+    save_source(conn, "album", album["id"], wiki_page, wiki_text)
+    conn.close()
+
+
+def collect_artists():
+    """Качает Wikipedia для артистов которые добавил step3 но ещё не fetched."""
+    conn = get_connection()
+    artists = conn.execute("""
+        SELECT a.id, a.name FROM artists a
+        WHERE a.fetched = 0
+    """).fetchall()
+    conn.close()
+
+    for row in artists:
+        artist_id, name = row["id"], row["name"]
+        print(f"  Fetching artist: {name}")
+        wiki_page, wiki_text = fetch_wiki_text(f"{name} musician")
+
+        conn = get_connection()
+        if not wiki_text:
+            print(f"  Not found: {name}")
+            conn.execute("UPDATE artists SET fetched=1 WHERE id=?", (artist_id,))
+            conn.commit()
+            conn.close()
+            continue
+
         conn.execute("""
-            INSERT OR IGNORE INTO albums 
-            (artist, album, year, genres, descriptors, wiki_page, wiki_text)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (artist, album, year, genres, descriptors, wiki_page, wiki_text))
+            INSERT OR IGNORE INTO sources
+                (entity_type, entity_id, source_type, url, raw_text, fetched_at, fetched)
+            VALUES ('artist', ?, 'wikipedia', ?, ?, ?, 1)
+        """, (artist_id, wiki_page, wiki_text, datetime.now(timezone.utc).isoformat()))
+        conn.execute("UPDATE artists SET fetched=1 WHERE id=?", (artist_id,))
         conn.commit()
-        print(f"Saved: {artist} - {album}")
-    except Exception as e:
-        print(f"Error saving {artist} - {album}: {e}")
-    finally:
         conn.close()
 
-def collect(artist, album, year, genres, descriptors):
-    page_title, text = fetch_wiki_text(artist, album)
-    if text:
-        save_album(artist, album, year, genres, descriptors, page_title, text)
-    time.sleep(1)
 
-def load_rym_albums(limit=2):
+def load_rym_albums(limit=10):
     df = pd.read_csv("source/rym_clean1.csv")
-    rows = []
+    rows = [("George Michael", "Older", "1996", "Pop", "")]
     for _, row in df.head(limit).iterrows():
         rows.append((
             row["artist_name"],
             row["release_name"],
-            str(row["release_date"])[:4],  # только год
+            str(row["release_date"])[:4],
             row["primary_genres"],
             row["descriptors"]
         ))
     return rows
 
+
 if __name__ == "__main__":
     init_db()
     albums = load_rym_albums(limit=10)
-    for artist, album, year, genres, descriptors in albums:
-        print(f"Processing: {artist} - {album}")
-        collect(artist, album, year, genres, descriptors)
+    for artist, title, year, genres, descriptors in albums:
+        collect_album(artist, title, year, genres, descriptors)
+    collect_artists()
