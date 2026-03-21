@@ -1,8 +1,6 @@
 # Bloodline
 Music discovery through influence, not algorithm.
 
----
-
 This is only for those who truly love music.
 If it's just background noise — this isn't for you.
 
@@ -14,7 +12,6 @@ No algorithm connects them. Neither do modern AI models — until you train one 
 This is an attempt to connect them through real influence —
 not just genre labels. And to prove it works by training a model that sees what others miss.
 
----
 
 **Is this who you are?**
 
@@ -27,16 +24,6 @@ Where it came from. What it spawned. Why it exists.
 
 This is built for you.
 
----
-
-**v1 progress**
-
-![60%](https://img.shields.io/badge/v1-60%25-black?style=flat-square)
-![graph](https://img.shields.io/badge/graph-done-brightgreen?style=flat-square&logo=data:image/svg+xml;base64,)
-![ui](https://img.shields.io/badge/UI-pending-gray?style=flat-square)
-
-**Demo**
-<!-- coming soon -->
 
 **How it works**
 
@@ -52,26 +39,18 @@ Each source (Wikipedia article, Pitchfork review, interview) is stored separatel
 
 **Stack**
 
-data &nbsp;
 ![Python](https://img.shields.io/badge/Python-3.11-black?style=flat-square&logo=python&logoColor=white)
 ![Pandas](https://img.shields.io/badge/Pandas-black?style=flat-square&logo=pandas&logoColor=white)
-![Wikipedia](https://img.shields.io/badge/Wikipedia-API-black?style=flat-square&logo=wikipedia&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-black?style=flat-square&logo=sqlite&logoColor=white)
 ![LanceDB](https://img.shields.io/badge/LanceDB-black?style=flat-square)
-
-ai &nbsp;
 ![Ollama](https://img.shields.io/badge/Ollama-black?style=flat-square)
 ![Qwen](https://img.shields.io/badge/Qwen-2.5:7b-black?style=flat-square)
 ![Nomic](https://img.shields.io/badge/Nomic-embed--text-black?style=flat-square)
 ![RAG](https://img.shields.io/badge/RAG-black?style=flat-square)
-
-web &nbsp;
 ![TypeScript](https://img.shields.io/badge/TypeScript-black?style=flat-square&logo=typescript&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js&logoColor=white)
 ![React](https://img.shields.io/badge/React-black?style=flat-square&logo=react&logoColor=white)
 ![Tailwind](https://img.shields.io/badge/Tailwind-black?style=flat-square&logo=tailwindcss&logoColor=white)
-
-mobile &nbsp;
 ![Expo](https://img.shields.io/badge/Expo-black?style=flat-square&logo=expo&logoColor=white)
 ![React Native](https://img.shields.io/badge/React%20Native-black?style=flat-square&logo=react&logoColor=white)
 
