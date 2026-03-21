@@ -24,6 +24,26 @@ def init_db():
             UNIQUE(artist, album)
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS artists (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            wiki_page TEXT,
+            wiki_text TEXT,
+            influences_raw TEXT,
+            processed INTEGER DEFAULT 0,
+            depth INTEGER NOT NULL
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS edges (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_album_id INTEGER REFERENCES albums(id),
+            source_artist_id INTEGER REFERENCES artists(id),
+            target_artist_id INTEGER NOT NULL REFERENCES artists(id),
+            UNIQUE(source_album_id, source_artist_id, target_artist_id)
+        )
+    """)
     conn.commit()
     conn.close()
     print("DB initialized")

@@ -46,3 +46,6 @@ AGENTS.md
 # db
 /scripts/data/
 /scripts/source/
+
+# claude memory
+.claude/
