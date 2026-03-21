@@ -16,6 +16,8 @@ not just genre labels. And to prove it works by training a model that sees what 
 
 ---
 
+**Is this who you are?**
+
 You don't just listen to music — you think about it.
 You read liner notes. You dig through discographies.
 You watch interviews to understand why an album sounds the way it does.
@@ -27,16 +29,10 @@ This is built for you.
 
 ---
 
-<!-- demo -->
+**Demo**
+<!-- coming soon -->
 
----
-
-![Python](https://img.shields.io/badge/Python-3.11-black?style=flat-square&logo=python&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-black?style=flat-square&logo=sqlite&logoColor=white)
-![Ollama](https://img.shields.io/badge/Ollama-llama3.2:3b-black?style=flat-square)
-
----
+**How it works**
 
 1. RateYourMusic Top 5000 → album list + mood descriptors
 2. Wikipedia API → full article text per album
@@ -45,7 +41,12 @@ This is built for you.
 5. SQLite graph → `album→artist` (depth=1), `artist→artist` (depth=2)
 6. Next.js → UI + API routes
 
----
+**Stack**
+
+![Python](https://img.shields.io/badge/Python-3.11-black?style=flat-square&logo=python&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-black?style=flat-square&logo=sqlite&logoColor=white)
+![Ollama](https://img.shields.io/badge/Ollama-llama3.2:3b-black?style=flat-square)
 
 <details>
 <summary>Scripts</summary>
