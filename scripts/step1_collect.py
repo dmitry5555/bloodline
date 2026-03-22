@@ -83,10 +83,18 @@ def collect_artists():
         conn.close()
 
 
-def load_rym_albums(limit=10):
+SEED_ALBUMS = [
+    ("George Michael", "Older", "1996", "Pop", ""),
+    ("Boards of Canada", "Geogaddi", "2002", "Electronic", ""),
+    ("Portishead", "Dummy", "1994", "Trip Hop", ""),
+    ("Nick Drake", "Pink Moon", "1972", "Folk", ""),
+    ("Kraftwerk", "Trans-Europe Express", "1977", "Electronic", ""),
+]
+
+def load_rym_albums():
     df = pd.read_csv("source/rym_clean1.csv")
-    rows = [("George Michael", "Older", "1996", "Pop", "")]
-    for _, row in df.head(limit).iterrows():
+    rows = []
+    for _, row in df.iterrows():
         rows.append((
             row["artist_name"],
             row["release_name"],
@@ -99,7 +107,8 @@ def load_rym_albums(limit=10):
 
 if __name__ == "__main__":
     init_db()
-    albums = load_rym_albums(limit=10)
-    for artist, title, year, genres, descriptors in albums:
+    for artist, title, year, genres, descriptors in SEED_ALBUMS:
+        collect_album(artist, title, year, genres, descriptors)
+    for artist, title, year, genres, descriptors in load_rym_albums():
         collect_album(artist, title, year, genres, descriptors)
     collect_artists()

@@ -1,9 +1,6 @@
 # Bloodline
 Music discovery through influence, not algorithm.
 
-This is only for those who truly love music.
-If it's just background noise — this isn't for you.
-
 George Michael said Wave (1967) by Antonio Carlos Jobim
 was one of his strongest inspirations behind Older (1996).
 Thirty years apart, different genres — same mood.
@@ -11,6 +8,9 @@ No algorithm connects them. Neither do modern AI models — until you train one 
 
 This is an attempt to connect them through real influence —
 not just genre labels. And to prove it works by training a model that sees what others miss.
+
+![Influence graph — early sample](public/graph.png)
+*Early sample: albums → depth=1 artists → depth=2 artists. Built automatically from Wikipedia via LLM extraction.*
 
 
 **Is this who you are?**
@@ -75,9 +75,13 @@ python step3_build_graph.py    # complete the graph
 
 **step3_build_graph.py** — reads `extracted_json` from all processed sources, creates artist nodes in `artists` table, writes edges: `album→artist` (depth=1), `artist→artist` (depth=2). Does not fetch or extract — only builds the graph.
 
-**wiki.py** — shared Wikipedia fetch logic used by step1 and step3.
+**wiki.py** — shared Wikipedia fetch logic used by step1 and step3. Handles retries and rate limiting.
 
-**get_photo_wi.py** — utility to fetch artist photo from Wikipedia (Wikimedia Commons only).
+**export_labeling.py** — exports extracted influences from sources into `data/labeling.csv` for manual review. Appends only new rows, preserving existing labels.
+
+**prepare_finetune.py** — converts labeled CSV into `data/finetune.jsonl` (chat format) for QLoRA fine-tuning.
+
+**get_photo_wi.py** — utility to fetch artist/album photo from Wikipedia (Wikimedia Commons only).
 
 </details>
 
@@ -90,6 +94,7 @@ npm run dev
 ```
 
 ```bash
+cd scripts
 pip install -r requirements.txt
 ```
 
@@ -99,12 +104,14 @@ pip install -r requirements.txt
 <summary>Roadmap</summary>
 
 **v1 — Influence Graph**
-- [ ] RateYourMusic Top 5000 → album list + mood descriptors
+- [x] RateYourMusic Top 5000 → album list + mood descriptors
 - [x] Wikipedia API → fetch wiki text per album and per influence artist
 - [x] LLM (Ollama) → extract musical influences from each source independently
 - [x] Recursive expansion (depth=2) — step1→step2→step3 run twice
 - [x] SQLite graph — albums + artists + sources + edges
 - [x] Per-source storage — each source tracked separately (fetched/extracted flags, model, prompt version)
+- [x] Labeled dataset (673 examples) for extraction fine-tune
+- [ ] Fine-tune Qwen 2.5:7b (QLoRA) → cleaner influence extraction
 - [ ] LanceDB → embeddings for semantic search (Nomic via Ollama)
 - [ ] Next.js API routes → search + graph traversal
 - [ ] Basic UI → search by album, see influence chain
